@@ -80,9 +80,7 @@ class UpdateChecker(QtCore.QObject):
         else:
             check_for_updates = False
 
-            # See if it's been 1 day since the last check
-            autoupdate_timestamp = settings.get("autoupdate_timestamp")
-            if autoupdate_timestamp:
+            if autoupdate_timestamp := settings.get("autoupdate_timestamp"):
                 last_checked = datetime.datetime.fromtimestamp(autoupdate_timestamp)
                 now = datetime.datetime.now()
 
@@ -167,10 +165,10 @@ class UpdateChecker(QtCore.QObject):
             settings.set("autoupdate_timestamp", timestamp)
             settings.save()
 
-            # Do we need to update?
-            update_url = "https://onionshare.org"
             installed_version = self.common.version
             if installed_version < latest_version:
+                # Do we need to update?
+                update_url = "https://onionshare.org"
                 self.update_available.emit(
                     update_url, installed_version, latest_version
                 )
@@ -209,7 +207,6 @@ class UpdateThread(QtCore.QThread):
         except Exception as e:
             # If update check fails, silently ignore
             self.common.log("UpdateThread", "run", str(e))
-            pass
 
     def _update_available(self, update_url, installed_version, latest_version):
         self.common.log("UpdateThread", "_update_available")

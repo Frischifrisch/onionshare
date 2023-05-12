@@ -189,14 +189,14 @@ class TestGetTorPaths:
         ) = common_obj.get_tor_paths()
 
         assert os.path.basename(tor_path) == "tor"
-        assert (
-            tor_geo_ip_file_path == "/usr/share/tor/geoip"
-            or tor_geo_ip_file_path == "/usr/local/share/tor/geoip"
-        )
-        assert (
-            tor_geo_ipv6_file_path == "/usr/share/tor/geoip6"
-            or tor_geo_ipv6_file_path == "/usr/local/share/tor/geoip6"
-        )
+        assert tor_geo_ip_file_path in [
+            "/usr/share/tor/geoip",
+            "/usr/local/share/tor/geoip",
+        ]
+        assert tor_geo_ipv6_file_path in [
+            "/usr/share/tor/geoip6",
+            "/usr/local/share/tor/geoip6",
+        ]
 
     @pytest.mark.skipif(sys.platform != "win32", reason="requires Windows")
     def test_get_tor_paths_windows(self, platform_windows, common_obj, sys_frozen):

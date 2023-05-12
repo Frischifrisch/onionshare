@@ -63,10 +63,7 @@ class SendBaseModeWeb:
         """
         If on Windows, replace backslashes with slashes
         """
-        if self.common.platform == "Windows":
-            return path.replace("\\", "/")
-
-        return path
+        return path.replace("\\", "/") if self.common.platform == "Windows" else path
 
     def set_file_info(self, filenames, processed_size_callback=None):
         """
@@ -90,11 +87,7 @@ class SendBaseModeWeb:
 
         # Windows paths use backslashes, but website paths use forward slashes. We have to
         # make sure we're stripping the correct type of slash
-        if self.common.platform == "Windows":
-            slash = "\\"
-        else:
-            slash = "/"
-
+        slash = "\\" if self.common.platform == "Windows" else "/"
         # Build the file list
         for filename in filenames:
             basename = os.path.basename(filename.rstrip(slash))
@@ -143,8 +136,9 @@ class SendBaseModeWeb:
         parts = path.split("/")
         if parts[-1] == "":
             parts = parts[:-1]
-        for i in range(len(parts)):
-            breadcrumbs.append((parts[i], f"/{'/'.join(parts[0 : i + 1])}"))
+        breadcrumbs.extend(
+            (parts[i], f"/{'/'.join(parts[:i + 1])}") for i in range(len(parts))
+        )
         breadcrumbs_leaf = breadcrumbs.pop()[0]
 
         # If filesystem_path is None, this is the root directory listing
@@ -163,9 +157,7 @@ class SendBaseModeWeb:
             else:
                 this_filesystem_path = self.files[filename]
 
-            is_dir = os.path.isdir(this_filesystem_path)
-
-            if is_dir:
+            if is_dir := os.path.isdir(this_filesystem_path):
                 dirs.append(
                     {"link": os.path.join(f"/{path}", filename), "basename": filename}
                 )
@@ -220,56 +212,54 @@ class SendBaseModeWeb:
         def generate():
             chunk_size = 102400  # 100kb
 
-            fp = open(file_to_download, "rb")
-            done = False
-            while not done:
-                chunk = fp.read(chunk_size)
-                if chunk == b"":
-                    done = True
-                else:
-                    try:
-                        yield chunk
-
-                        # Tell GUI the progress
-                        downloaded_bytes = fp.tell()
-                        percent = (1.0 * downloaded_bytes / filesize) * 100
-                        if (
-                            not self.web.is_gui
-                            or self.common.platform == "Linux"
-                            or self.common.platform == "BSD"
-                        ):
-                            sys.stdout.write(
-                                "\r{0:s}, {1:.2f}%          ".format(
-                                    self.common.human_readable_filesize(
-                                        downloaded_bytes
-                                    ),
-                                    percent,
-                                )
-                            )
-                            sys.stdout.flush()
-
-                        self.web.add_request(
-                            self.web.REQUEST_INDIVIDUAL_FILE_PROGRESS,
-                            path,
-                            {
-                                "id": history_id,
-                                "bytes": downloaded_bytes,
-                                "filesize": filesize,
-                            },
-                        )
-                        done = False
-                    except Exception:
-                        # Looks like the download was canceled
+            with open(file_to_download, "rb") as fp:
+                done = False
+                while not done:
+                    chunk = fp.read(chunk_size)
+                    if chunk == b"":
                         done = True
+                    else:
+                        try:
+                            yield chunk
 
-                        # Tell the GUI the individual file was canceled
-                        self.web.add_request(
-                            self.web.REQUEST_INDIVIDUAL_FILE_CANCELED,
-                            path,
-                            {"id": history_id},
-                        )
+                            # Tell GUI the progress
+                            downloaded_bytes = fp.tell()
+                            percent = (1.0 * downloaded_bytes / filesize) * 100
+                            if (
+                                not self.web.is_gui
+                                or self.common.platform == "Linux"
+                                or self.common.platform == "BSD"
+                            ):
+                                sys.stdout.write(
+                                    "\r{0:s}, {1:.2f}%          ".format(
+                                        self.common.human_readable_filesize(
+                                            downloaded_bytes
+                                        ),
+                                        percent,
+                                    )
+                                )
+                                sys.stdout.flush()
 
-            fp.close()
+                            self.web.add_request(
+                                self.web.REQUEST_INDIVIDUAL_FILE_PROGRESS,
+                                path,
+                                {
+                                    "id": history_id,
+                                    "bytes": downloaded_bytes,
+                                    "filesize": filesize,
+                                },
+                            )
+                            done = False
+                        except Exception:
+                            # Looks like the download was canceled
+                            done = True
+
+                            # Tell the GUI the individual file was canceled
+                            self.web.add_request(
+                                self.web.REQUEST_INDIVIDUAL_FILE_CANCELED,
+                                path,
+                                {"id": history_id},
+                            )
 
             if self.common.platform != "Darwin":
                 sys.stdout.write("\n")
@@ -282,7 +272,7 @@ class SendBaseModeWeb:
         r.headers.set("Content-Length", filesize)
         filename_dict = {
             "filename": unidecode(basename),
-            "filename*": "UTF-8''%s" % url_quote(basename),
+            "filename*": f"UTF-8''{url_quote(basename)}",
         }
         r.headers.set("Content-Disposition", "inline", **filename_dict)
         (content_type, _) = mimetypes.guess_type(basename, strict=False)

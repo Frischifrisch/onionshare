@@ -49,7 +49,7 @@ class ChatMode(Mode):
             QtGui.QPixmap.fromImage(
                 QtGui.QImage(
                     GuiCommon.get_resource_path(
-                        "images/{}_mode_chat.png".format(self.common.gui.color_mode)
+                        f"images/{self.common.gui.color_mode}_mode_chat.png"
                     )
                 )
             )

@@ -79,17 +79,18 @@ class HistoryItem(QtWidgets.QWidget):
             and started.month == ended.month
             and started.day == ended.day
         ):
-            if started.hour == ended.hour and started.minute == ended.minute:
-                text = strings._(string_name).format(started.strftime("%b %d, %I:%M%p"))
-            else:
-                text = strings._(string_range_name).format(
+            return (
+                strings._(string_name).format(started.strftime("%b %d, %I:%M%p"))
+                if started.hour == ended.hour and started.minute == ended.minute
+                else strings._(string_range_name).format(
                     started.strftime("%b %d, %I:%M%p"), ended.strftime("%I:%M%p")
                 )
-        else:
-            text = strings._(string_range_name).format(
-                started.strftime("%b %d, %I:%M%p"), ended.strftime("%b %d, %I:%M%p")
             )
-        return text
+        else:
+            return strings._(string_range_name).format(
+                started.strftime("%b %d, %I:%M%p"),
+                ended.strftime("%b %d, %I:%M%p"),
+            )
 
 
 class ShareHistoryItem(HistoryItem):
@@ -250,7 +251,7 @@ class ReceiveHistoryItemFile(QtWidgets.QWidget):
         abs_filename = os.path.join(self.dir, self.filename)
 
         # Linux
-        if self.common.platform == "Linux" or self.common.platform == "BSD":
+        if self.common.platform in ["Linux", "BSD"]:
             try:
                 # If nautilus is available, open it
                 subprocess.Popen(["xdg-open", self.dir])
@@ -260,11 +261,9 @@ class ReceiveHistoryItemFile(QtWidgets.QWidget):
                     strings._("gui_open_folder_error").format(abs_filename),
                 )
 
-        # macOS
         elif self.common.platform == "Darwin":
             subprocess.call(["open", "-R", abs_filename])
 
-        # Windows
         elif self.common.platform == "Windows":
             subprocess.Popen(["explorer", f"/select,{abs_filename}"])
 
@@ -310,15 +309,13 @@ class ReceiveHistoryItemMessage(QtWidgets.QWidget):
         self.common.log("ReceiveHistoryItemMessage", "open_message", self.filename)
 
         # Linux
-        if self.common.platform == "Linux" or self.common.platform == "BSD":
+        if self.common.platform in ["Linux", "BSD"]:
             # If nautilus is available, open it
             subprocess.Popen(["xdg-open", self.filename])
 
-        # macOS
         elif self.common.platform == "Darwin":
             subprocess.call(["open", self.filename])
 
-        # Windows
         elif self.common.platform == "Windows":
             subprocess.Popen(["notepad", self.filename])
 
@@ -387,10 +384,10 @@ class ReceiveHistoryItem(HistoryItem):
         for each file
         """
         if data["action"] == "progress":
-            total_uploaded_bytes = 0
-            for filename in data["progress"]:
-                total_uploaded_bytes += data["progress"][filename]["uploaded_bytes"]
-
+            total_uploaded_bytes = sum(
+                data["progress"][filename]["uploaded_bytes"]
+                for filename in data["progress"]
+            )
             # Update the progress bar
             self.progress_bar.setMaximum(self.content_length / 1024)
             self.progress_bar.setValue(total_uploaded_bytes / 1024)

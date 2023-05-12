@@ -48,7 +48,7 @@ class ReceiveMode(Mode):
             QtGui.QPixmap.fromImage(
                 QtGui.QImage(
                     GuiCommon.get_resource_path(
-                        "images/{}_mode_receive.png".format(self.common.gui.color_mode)
+                        f"images/{self.common.gui.color_mode}_mode_receive.png"
                     )
                 )
             )
@@ -212,11 +212,9 @@ class ReceiveMode(Mode):
         Browse for a new OnionShare data directory, and save to tab settings
         """
         data_dir = self.data_dir_lineedit.text()
-        selected_dir = QtWidgets.QFileDialog.getExistingDirectory(
+        if selected_dir := QtWidgets.QFileDialog.getExistingDirectory(
             self, strings._("mode_settings_receive_data_dir_label"), data_dir
-        )
-
-        if selected_dir:
+        ):
             # If we're running inside a flatpak package, the data dir must be inside ~/OnionShare
             if self.common.gui.is_flatpak:
                 if not selected_dir.startswith(os.path.expanduser("~/OnionShare")):

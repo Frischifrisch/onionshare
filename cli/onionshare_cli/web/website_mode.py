@@ -83,39 +83,26 @@ class WebsiteModeWeb(SendBaseModeWeb):
                     # Render it
                     return self.stream_individual_file(self.files[index_path])
 
-                else:
-                    # Otherwise, render directory listing
-                    filenames = []
-                    for filename in os.listdir(filesystem_path):
-                        filenames.append(filename)
-                    filenames.sort()
-                    return self.directory_listing(filenames, path, filesystem_path)
+                filenames = sorted(os.listdir(filesystem_path))
+                return self.directory_listing(filenames, path, filesystem_path)
 
-            # If it's a file
             elif os.path.isfile(filesystem_path):
                 return self.stream_individual_file(filesystem_path)
 
-            # If it's not a directory or file, throw a 404
             else:
                 history_id = self.cur_history_id
                 self.cur_history_id += 1
                 return self.web.error404(history_id)
+        elif path == "":
+            index_path = "index.html"
+            if index_path in self.files:
+                # Render it
+                return self.stream_individual_file(self.files[index_path])
+            filenames = sorted(self.root_files)
+            return self.directory_listing(filenames, path)
+
         else:
-            # Special case loading /
-
-            if path == "":
-                index_path = "index.html"
-                if index_path in self.files:
-                    # Render it
-                    return self.stream_individual_file(self.files[index_path])
-                else:
-                    # Root directory listing
-                    filenames = list(self.root_files)
-                    filenames.sort()
-                    return self.directory_listing(filenames, path)
-
-            else:
-                # If the path isn't found, throw a 404
-                history_id = self.cur_history_id
-                self.cur_history_id += 1
-                return self.web.error404(history_id)
+            # If the path isn't found, throw a 404
+            history_id = self.cur_history_id
+            self.cur_history_id += 1
+            return self.web.error404(history_id)

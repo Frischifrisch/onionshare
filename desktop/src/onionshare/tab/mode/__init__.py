@@ -155,22 +155,23 @@ class Mode(QtWidgets.QWidget):
         seconds = secs - days * 86400 - hours * 3600 - minutes * 60
         if not seconds:
             seconds = "0"
-        result = (
+        return (
             (f"{days}{strings._('days_first_letter')}, " if days else "")
             + (f"{hours}{strings._('hours_first_letter')}, " if hours else "")
-            + (f"{minutes}{strings._('minutes_first_letter')}, " if minutes else "")
+            + (
+                f"{minutes}{strings._('minutes_first_letter')}, "
+                if minutes
+                else ""
+            )
             + f"{seconds}{strings._('seconds_first_letter')}"
         )
-
-        return result
 
     def timer_callback(self):
         """
         This method is called regularly on a timer.
         """
-        # If this is a scheduled share, display the countdown til the share starts
-        if self.server_status.status == ServerStatus.STATUS_WORKING:
-            if self.settings.get("general", "autostart_timer"):
+        if self.settings.get("general", "autostart_timer"):
+            if self.server_status.status == ServerStatus.STATUS_WORKING:
                 now = QtCore.QDateTime.currentDateTime()
                 if self.server_status.local_only:
                     seconds_remaining = now.secsTo(
@@ -189,23 +190,21 @@ class Mode(QtWidgets.QWidget):
                             self.human_friendly_time(seconds_remaining)
                         )
                     )
-                else:
-                    if self.common.platform == "Windows" or self.settings.get(
+                elif self.common.platform == "Windows" or self.settings.get(
                         "general", "autostart_timer"
                     ):
-                        self.server_status.server_button.setText(
-                            strings._("gui_please_wait")
-                        )
-                    else:
-                        self.server_status.server_button.setText(
-                            strings._("gui_please_wait_no_button")
-                        )
+                    self.server_status.server_button.setText(
+                        strings._("gui_please_wait")
+                    )
+                else:
+                    self.server_status.server_button.setText(
+                        strings._("gui_please_wait_no_button")
+                    )
 
-        # If the auto-stop timer has stopped, stop the server
-        if self.server_status.status == ServerStatus.STATUS_STARTED:
-            if self.app.autostop_timer_thread and self.settings.get(
+        if self.app.autostop_timer_thread and self.settings.get(
                 "general", "autostop_timer"
             ):
+            if self.server_status.status == ServerStatus.STATUS_STARTED:
                 if self.autostop_timer_datetime_delta > 0:
                     now = QtCore.QDateTime.currentDateTime()
                     seconds_remaining = now.secsTo(

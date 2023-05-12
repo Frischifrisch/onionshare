@@ -62,10 +62,6 @@ def web_obj(temp_dir, common_obj, mode, num_files=0):
                 tmp_file.write(b"*" * 1024)
                 files.append(tmp_file.name)
         web.share_mode.set_file_info(files)
-    # Receive mode
-    else:
-        pass
-
     return web
 
 
@@ -83,10 +79,7 @@ class TestWeb:
             res = c.get("/download")
             res.get_data()
             assert res.status_code == 200
-            assert (
-                res.mimetype == "application/zip"
-                or res.mimetype == "application/x-zip-compressed"
-            )
+            assert res.mimetype in ["application/zip", "application/x-zip-compressed"]
 
     def test_share_mode_autostop_sharing_on(self, temp_dir, common_obj, temp_file_1024):
         web = web_obj(temp_dir, common_obj, "share", 3)
@@ -99,10 +92,7 @@ class TestWeb:
             res = c.get("/download")
             res.get_data()
             assert res.status_code == 200
-            assert (
-                res.mimetype == "application/zip"
-                or res.mimetype == "application/x-zip-compressed"
-            )
+            assert res.mimetype in ["application/zip", "application/x-zip-compressed"]
 
             assert web.running is False
 
@@ -119,10 +109,7 @@ class TestWeb:
             res = c.get("/download")
             res.get_data()
             assert res.status_code == 200
-            assert (
-                res.mimetype == "application/zip"
-                or res.mimetype == "application/x-zip-compressed"
-            )
+            assert res.mimetype in ["application/zip", "application/x-zip-compressed"]
             assert web.running is True
 
     def test_receive_mode(self, temp_dir, common_obj):
@@ -223,7 +210,7 @@ class TestWeb:
         data_dir_date = os.path.join(data_dir, os.listdir(data_dir)[0])
         filenames = os.listdir(data_dir_date)
         assert len(filenames) == 2
-        time_str = filenames[0][0:6]
+        time_str = filenames[0][:6]
         assert time_str in filenames
         assert f"{time_str}-message.txt" in filenames
         data_dir_time = os.path.join(data_dir_date, time_str)
@@ -255,7 +242,7 @@ class TestWeb:
         data_dir_date = os.path.join(data_dir, os.listdir(data_dir)[0])
         filenames = os.listdir(data_dir_date)
         assert len(filenames) == 1
-        time_str = filenames[0][0:6]
+        time_str = filenames[0][:6]
         assert time_str in filenames
         assert f"{time_str}-message.txt" not in filenames
         data_dir_time = os.path.join(data_dir_date, time_str)
@@ -308,7 +295,7 @@ class TestWeb:
 
         assert os.path.exists(temp_file_1024) is False
         assert os.path.exists(temp_dir_1024) is False
-        assert web.cleanup_filenames == []
+        assert not web.cleanup_filenames
 
 
 class TestZipWriterDefault:
@@ -372,8 +359,7 @@ class TestZipWriterCustom:
 
 
 def check_unsupported(cmd: str, args: list):
-    cmd_args = [cmd]
-    cmd_args.extend(args)
+    cmd_args = [cmd, *args]
     skip = False
 
     try:
@@ -412,7 +398,7 @@ def live_server(web):
             else:
                 raise
 
-    yield url + "/download"
+    yield f"{url}/download"
 
     proc.terminate()
 
@@ -488,19 +474,16 @@ class TestRangeRequests:
             resp = client.get(url, headers=headers)
             assert resp.status_code == 206
             content_range = resp.headers["Content-Range"]
-            assert content_range == "bytes {}-{}/{}".format(
-                0, 10, web.share_mode.download_filesize
-            )
+            assert content_range == f"bytes 0-10/{web.share_mode.download_filesize}"
             bytes_out = resp.data
 
             headers.update({"Range": "bytes=11-100000"})
             resp = client.get(url, headers=headers)
             assert resp.status_code == 206
             content_range = resp.headers["Content-Range"]
-            assert content_range == "bytes {}-{}/{}".format(
-                11,
-                web.share_mode.download_filesize - 1,
-                web.share_mode.download_filesize,
+            assert (
+                content_range
+                == f"bytes 11-{web.share_mode.download_filesize - 1}/{web.share_mode.download_filesize}"
             )
             bytes_out += resp.data
 

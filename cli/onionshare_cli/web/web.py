@@ -182,7 +182,7 @@ class Web:
         # Update the flask route to handle the new static URL path
         self.app.static_url_path = self.static_url_path
         self.app.add_url_rule(
-            self.static_url_path + "/<path:filename>",
+            f"{self.static_url_path}/<path:filename>",
             view_func=self.app.send_static_file,
         )
 

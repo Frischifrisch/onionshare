@@ -34,7 +34,6 @@ import requests
 
 
 def main():
-    dmg_url = "https://dist.torproject.org/torbrowser/11.0a10/TorBrowser-11.0a10-osx64_en-US.dmg"
     dmg_filename = "TorBrowser-11.0a10-osx64_en-US.dmg"
     expected_dmg_sha256 = (
         "c6823a28fd28205437564815f93011ff93b7972da2a8ce16919adfc65909e7b9"
@@ -59,7 +58,8 @@ def main():
 
     # Make sure the zip is downloaded
     if not os.path.exists(dmg_path):
-        print("Downloading {}".format(dmg_url))
+        dmg_url = "https://dist.torproject.org/torbrowser/11.0a10/TorBrowser-11.0a10-osx64_en-US.dmg"
+        print(f"Downloading {dmg_url}")
         r = requests.get(dmg_url)
         open(dmg_path, "wb").write(r.content)
         dmg_sha256 = hashlib.sha256(r.content).hexdigest()
@@ -70,8 +70,8 @@ def main():
     # Compare the hash
     if dmg_sha256 != expected_dmg_sha256:
         print("ERROR! The sha256 doesn't match:")
-        print("expected: {}".format(expected_dmg_sha256))
-        print("  actual: {}".format(dmg_sha256))
+        print(f"expected: {expected_dmg_sha256}")
+        print(f"  actual: {dmg_sha256}")
         sys.exit(-1)
 
     # Mount the dmg, copy data to the working path

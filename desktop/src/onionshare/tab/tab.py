@@ -122,7 +122,7 @@ class Tab(QtWidgets.QWidget):
             QtGui.QPixmap.fromImage(
                 QtGui.QImage(
                     GuiCommon.get_resource_path(
-                        "images/{}_logo_text.png".format(self.common.gui.color_mode)
+                        f"images/{self.common.gui.color_mode}_logo_text.png"
                     )
                 )
             )
@@ -137,7 +137,7 @@ class Tab(QtWidgets.QWidget):
         # New tab buttons
         self.share_button = NewTabButton(
             self.common,
-            "images/{}_mode_new_tab_share.png".format(self.common.gui.color_mode),
+            f"images/{self.common.gui.color_mode}_mode_new_tab_share.png",
             strings._("gui_new_tab_share_button"),
             strings._("gui_main_page_share_button"),
         )
@@ -145,7 +145,7 @@ class Tab(QtWidgets.QWidget):
 
         self.receive_button = NewTabButton(
             self.common,
-            "images/{}_mode_new_tab_receive.png".format(self.common.gui.color_mode),
+            f"images/{self.common.gui.color_mode}_mode_new_tab_receive.png",
             strings._("gui_new_tab_receive_button"),
             strings._("gui_main_page_receive_button"),
         )
@@ -153,7 +153,7 @@ class Tab(QtWidgets.QWidget):
 
         self.website_button = NewTabButton(
             self.common,
-            "images/{}_mode_new_tab_website.png".format(self.common.gui.color_mode),
+            f"images/{self.common.gui.color_mode}_mode_new_tab_website.png",
             strings._("gui_new_tab_website_button"),
             strings._("gui_main_page_website_button"),
         )
@@ -161,7 +161,7 @@ class Tab(QtWidgets.QWidget):
 
         self.chat_button = NewTabButton(
             self.common,
-            "images/{}_mode_new_tab_chat.png".format(self.common.gui.color_mode),
+            f"images/{self.common.gui.color_mode}_mode_new_tab_chat.png",
             strings._("gui_new_tab_chat_button"),
             strings._("gui_main_page_chat_button"),
         )
@@ -501,9 +501,9 @@ class Tab(QtWidgets.QWidget):
         """
         self.update()
 
-        if not self.common.gui.local_only:
             # Have we lost connection to Tor somehow?
-            if not self.common.gui.onion.is_authenticated():
+        if not self.common.gui.onion.is_authenticated():
+            if not self.common.gui.local_only:
                 self.timer.stop()
                 self.status_bar.showMessage(strings._("gui_tor_connection_lost"))
                 self.system_tray.showMessage(
@@ -571,10 +571,10 @@ class Tab(QtWidgets.QWidget):
                 )
 
             if event["type"] == Web.REQUEST_OTHER:
-                if (
-                    event["path"] != "/favicon.ico"
-                    and event["path"] != f"/{mode.web.shutdown_password}/shutdown"
-                ):
+                if event["path"] not in [
+                    "/favicon.ico",
+                    f"/{mode.web.shutdown_password}/shutdown",
+                ]:
                     self.status_bar.showMessage(
                         f"{strings._('other_page_loaded')}: {event['path']}"
                     )
@@ -608,17 +608,16 @@ class Tab(QtWidgets.QWidget):
         self.status_bar.clearMessage()
 
     def get_mode(self):
-        if self.mode:
-            if self.mode == self.common.gui.MODE_SHARE:
-                return self.share_mode
-            elif self.mode == self.common.gui.MODE_RECEIVE:
-                return self.receive_mode
-            elif self.mode == self.common.gui.MODE_CHAT:
-                return self.chat_mode
-            else:
-                return self.website_mode
-        else:
+        if not self.mode:
             return None
+        if self.mode == self.common.gui.MODE_SHARE:
+            return self.share_mode
+        elif self.mode == self.common.gui.MODE_RECEIVE:
+            return self.receive_mode
+        elif self.mode == self.common.gui.MODE_CHAT:
+            return self.chat_mode
+        else:
+            return self.website_mode
 
     def settings_have_changed(self):
         # Global settings have changed
@@ -628,8 +627,7 @@ class Tab(QtWidgets.QWidget):
         # settings, we probably succeeded in obtaining a new connection. If so, restart the timer.
         if not self.common.gui.local_only:
             if self.common.gui.onion.is_authenticated():
-                mode = self.get_mode()
-                if mode:
+                if mode := self.get_mode():
                     if not self.timer.isActive():
                         self.timer.start(500)
                     mode.on_reload_settings()
@@ -645,13 +643,12 @@ class Tab(QtWidgets.QWidget):
             server_status = self.get_mode().server_status
             if server_status.status == server_status.STATUS_STOPPED:
                 return True
+            if self.mode == self.common.gui.MODE_SHARE:
+                dialog_text = strings._("gui_close_tab_warning_share_description")
+            elif self.mode == self.common.gui.MODE_RECEIVE:
+                dialog_text = strings._("gui_close_tab_warning_receive_description")
             else:
-                if self.mode == self.common.gui.MODE_SHARE:
-                    dialog_text = strings._("gui_close_tab_warning_share_description")
-                elif self.mode == self.common.gui.MODE_RECEIVE:
-                    dialog_text = strings._("gui_close_tab_warning_receive_description")
-                else:
-                    dialog_text = strings._("gui_close_tab_warning_website_description")
+                dialog_text = strings._("gui_close_tab_warning_website_description")
 
         # Open the warning dialog
         self.common.log("Tab", "close_tab, opening warning dialog")

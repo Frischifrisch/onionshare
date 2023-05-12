@@ -113,7 +113,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.tor_settings_button.setIcon(
             QtGui.QIcon(
                 GuiCommon.get_resource_path(
-                    "images/{}_tor_settings.png".format(self.common.gui.color_mode)
+                    f"images/{self.common.gui.color_mode}_tor_settings.png"
                 )
             )
         )
@@ -131,7 +131,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.settings_button.setIcon(
             QtGui.QIcon(
                 GuiCommon.get_resource_path(
-                    "images/{}_settings.png".format(self.common.gui.color_mode)
+                    f"images/{self.common.gui.color_mode}_settings.png"
                 )
             )
         )
@@ -270,7 +270,7 @@ class MainWindow(QtWidgets.QMainWindow):
         """
         Check for updates in a new thread, if enabled.
         """
-        if self.common.platform == "Windows" or self.common.platform == "Darwin":
+        if self.common.platform in ["Windows", "Darwin"]:
             if self.common.settings.get("use_autoupdate"):
 
                 def update_available(update_url, installed_version, latest_version):

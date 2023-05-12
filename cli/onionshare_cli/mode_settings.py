@@ -61,11 +61,7 @@ class ModeSettings:
         self._settings = {}
 
         self.just_created = False
-        if id:
-            self.id = id
-        else:
-            self.id = self.common.build_password(3)
-
+        self.id = id if id else self.common.build_password(3)
         self.load(filename)
 
     def fill_in_defaults(self):
