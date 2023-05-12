@@ -182,9 +182,7 @@ class Onion(object):
         # strip trailing ====
         assert key_b32[-4:] == b"===="
         key_b32 = key_b32[:-4]
-        # change from b'ASDF' to ASDF
-        s = key_b32.decode("utf-8")
-        return s
+        return key_b32.decode("utf-8")
 
     def connect(
         self,
@@ -267,7 +265,7 @@ class Onion(object):
                 except Exception:
                     pass
 
-            if self.common.platform == "Windows" or self.common.platform == "Darwin":
+            if self.common.platform in ["Windows", "Darwin"]:
                 # Windows doesn't support unix sockets, so it must use a network port.
                 # macOS can't use unix sockets either because socket filenames are limited to
                 # 100 chars, and the macOS sandbox forces us to put the socket file in a place
@@ -378,17 +376,13 @@ class Onion(object):
 
             # Connect to the controller
             try:
-                if (
-                    self.common.platform == "Windows"
-                    or self.common.platform == "Darwin"
-                ):
+                if self.common.platform in ["Windows", "Darwin"]:
                     self.c = Controller.from_port(port=self.tor_control_port)
-                    self.c.authenticate()
                 else:
                     self.c = Controller.from_socket_file(path=self.tor_control_socket)
-                    self.c.authenticate()
+                self.c.authenticate()
             except Exception as e:
-                print("OnionShare could not connect to Tor:\n{}".format(e.args[0]))
+                print(f"OnionShare could not connect to Tor:\n{e.args[0]}")
                 raise BundledTorBroken(e.args[0])
 
             while True:
@@ -446,9 +440,7 @@ class Onion(object):
             # Try connecting to control port
             found_tor = False
 
-            # If the TOR_CONTROL_PORT environment variable is set, use that
-            env_port = os.environ.get("TOR_CONTROL_PORT")
-            if env_port:
+            if env_port := os.environ.get("TOR_CONTROL_PORT"):
                 try:
                     self.c = Controller.from_port(port=int(env_port))
                     found_tor = True
@@ -483,7 +475,7 @@ class Onion(object):
             # guessing the socket file name next
             if not found_tor:
                 try:
-                    if self.common.platform == "Linux" or self.common.platform == "BSD":
+                    if self.common.platform in ["Linux", "BSD"]:
                         socket_file_path = (
                             f"/run/user/{os.geteuid()}/Tor/control.socket"
                         )
@@ -531,19 +523,14 @@ class Onion(object):
             except Exception:
                 if self.settings.get("connection_type") == "control_port":
                     print(
-                        "Can't connect to the Tor controller at {}:{}.".format(
-                            self.settings.get("control_port_address"),
-                            self.settings.get("control_port_port"),
-                        )
+                        f"""Can't connect to the Tor controller at {self.settings.get("control_port_address")}:{self.settings.get("control_port_port")}."""
                     )
                     raise TorErrorSocketPort(
                         self.settings.get("control_port_address"),
                         self.settings.get("control_port_port"),
                     )
                 print(
-                    "Can't connect to the Tor controller using socket file {}.".format(
-                        self.settings.get("socket_file_path")
-                    )
+                    f"""Can't connect to the Tor controller using socket file {self.settings.get("socket_file_path")}."""
                 )
                 raise TorErrorSocketFile(self.settings.get("socket_file_path"))
 
@@ -569,10 +556,7 @@ class Onion(object):
                 raise TorErrorUnreadableCookieFile()
             except AuthenticationFailure:
                 print(
-                    "Connected to {}:{}, but can't authenticate. Maybe this isn't a Tor controller?".format(
-                        self.settings.get("control_port_address"),
-                        self.settings.get("control_port_port"),
-                    )
+                    f"""Connected to {self.settings.get("control_port_address")}:{self.settings.get("control_port_port")}, but can't authenticate. Maybe this isn't a Tor controller?"""
                 )
                 raise TorErrorAuthError(
                     self.settings.get("control_port_address"),
@@ -620,10 +604,7 @@ class Onion(object):
         """
         Returns True if the Tor connection is still working, or False otherwise.
         """
-        if self.c is not None:
-            return self.c.is_authenticated()
-        else:
-            return False
+        return self.c.is_authenticated() if self.c is not None else False
 
     def start_onion_service(self, mode, mode_settings, port, await_publication):
         """
@@ -653,32 +634,31 @@ class Onion(object):
         if mode_settings.get("general", "public"):
             client_auth_priv_key = None
             client_auth_pub_key = None
-        else:
-            if not self.supports_stealth:
-                print(
-                    "Your version of Tor is too old, stealth onion services are not supported"
+        elif self.supports_stealth:
+            if key_type == "NEW" or not mode_settings.get(
+                "onion", "client_auth_priv_key"
+            ):
+                # Generate a new key pair for Client Auth on new onions, or if
+                # it's a persistent onion but for some reason we don't them
+                client_auth_priv_key_raw = nacl.public.PrivateKey.generate()
+                client_auth_priv_key = self.key_str(client_auth_priv_key_raw)
+                client_auth_pub_key = self.key_str(
+                    client_auth_priv_key_raw.public_key
                 )
-                raise TorTooOldStealth()
             else:
-                if key_type == "NEW" or not mode_settings.get(
+                # These should have been saved in settings from the previous run of a persistent onion
+                client_auth_priv_key = mode_settings.get(
                     "onion", "client_auth_priv_key"
-                ):
-                    # Generate a new key pair for Client Auth on new onions, or if
-                    # it's a persistent onion but for some reason we don't them
-                    client_auth_priv_key_raw = nacl.public.PrivateKey.generate()
-                    client_auth_priv_key = self.key_str(client_auth_priv_key_raw)
-                    client_auth_pub_key = self.key_str(
-                        client_auth_priv_key_raw.public_key
-                    )
-                else:
-                    # These should have been saved in settings from the previous run of a persistent onion
-                    client_auth_priv_key = mode_settings.get(
-                        "onion", "client_auth_priv_key"
-                    )
-                    client_auth_pub_key = mode_settings.get(
-                        "onion", "client_auth_pub_key"
-                    )
+                )
+                client_auth_pub_key = mode_settings.get(
+                    "onion", "client_auth_pub_key"
+                )
 
+        else:
+            print(
+                "Your version of Tor is too old, stealth onion services are not supported"
+            )
+            raise TorTooOldStealth()
         try:
             if not self.supports_stealth:
                 res = self.c.create_ephemeral_hidden_service(
@@ -699,10 +679,10 @@ class Onion(object):
                 )
 
         except ProtocolError as e:
-            print("Tor error: {}".format(e.args[0]))
+            print(f"Tor error: {e.args[0]}")
             raise TorErrorProtocolError(e.args[0])
 
-        onion_host = res.service_id + ".onion"
+        onion_host = f"{res.service_id}.onion"
 
         # Gracefully close share mode rendezvous circuits
         if mode == "share":
@@ -735,8 +715,7 @@ class Onion(object):
         """
         Stop a specific onion service
         """
-        onion_host = mode_settings.get("general", "service_id")
-        if onion_host:
+        if onion_host := mode_settings.get("general", "service_id"):
             self.common.log("Onion", "stop_onion_service", f"onion host: {onion_host}")
             try:
                 self.c.remove_ephemeral_hidden_service(
@@ -767,7 +746,6 @@ class Onion(object):
                     self.common.log(
                         "Onion", "cleanup", f"failed to remove onion {onion_host}"
                     )
-                    pass
         except Exception:
             pass
 
@@ -778,33 +756,30 @@ class Onion(object):
                     # Wait for Tor rendezvous circuits to close
                     # Catch exceptions to prevent crash on Ctrl-C
                     try:
-                        rendezvous_circuit_ids = []
-                        for c in self.c.get_circuits():
+                        rendezvous_circuit_ids = [
+                            c.id
+                            for c in self.c.get_circuits()
                             if (
                                 c.purpose == "HS_SERVICE_REND"
                                 and c.rend_query in self.graceful_close_onions
-                            ):
-                                rendezvous_circuit_ids.append(c.id)
-
+                            )
+                        ]
                         symbols = list("\\|/-")
                         symbols_i = 0
 
                         while True:
-                            num_rend_circuits = 0
-                            for c in self.c.get_circuits():
-                                if c.id in rendezvous_circuit_ids:
-                                    num_rend_circuits += 1
-
+                            num_rend_circuits = sum(
+                                1
+                                for c in self.c.get_circuits()
+                                if c.id in rendezvous_circuit_ids
+                            )
                             if num_rend_circuits == 0:
                                 print(
                                     "\rTor rendezvous circuits have closed" + " " * 20
                                 )
                                 break
 
-                            if num_rend_circuits == 1:
-                                circuits = "circuit"
-                            else:
-                                circuits = "circuits"
+                            circuits = "circuit" if num_rend_circuits == 1 else "circuits"
                             print(
                                 f"\rWaiting for {num_rend_circuits} Tor rendezvous {circuits} to close {symbols[symbols_i]} ",
                                 end="",

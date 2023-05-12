@@ -134,12 +134,8 @@ class Settings(object):
             if not language_code:
                 language_code = "en_US"
 
-            if language_code == "pt_PT" and language_code == "pt_BR":
-                # Portuguese locales include country code
-                default_locale = language_code
-            else:
-                # All other locales cut off the country code
-                default_locale = language_code[:2]
+            # All other locales cut off the country code
+            default_locale = language_code[:2]
 
             if default_locale not in self.available_locales:
                 default_locale = "en"
@@ -186,7 +182,7 @@ class Settings(object):
 
     def set(self, key, val):
         # If typecasting int values fails, fallback to default values
-        if key == "control_port_port" or key == "socks_port":
+        if key in ["control_port_port", "socks_port"]:
             try:
                 val = int(val)
             except Exception:

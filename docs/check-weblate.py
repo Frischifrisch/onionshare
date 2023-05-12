@@ -43,16 +43,14 @@ async def get_docs_translation(component, lang_code):
 
 
 async def app_percent_output(percent_min, percent_max=101):
-    out = []
-    for lang_code in languages:
+    out = [
+        f"{languages[lang_code]} ({lang_code}), {app_translations[lang_code]}%"
+        for lang_code in languages
         if (
             app_translations[lang_code] >= percent_min
             and app_translations[lang_code] < percent_max
-        ):
-            out.append(
-                f"{languages[lang_code]} ({lang_code}), {app_translations[lang_code]}%"
-            )
-
+        )
+    ]
     out.sort()
 
     print(f"App translations >= {percent_min}%")
@@ -123,10 +121,10 @@ async def main():
         "doc-sphinx",
         "doc-tor",
     ]:
-        docs_futures = []
-        for lang_code in languages:
-            docs_futures.append(get_docs_translation(component, lang_code))
-
+        docs_futures = [
+            get_docs_translation(component, lang_code)
+            for lang_code in languages
+        ]
         await asyncio.gather(*docs_futures)
 
     print("")

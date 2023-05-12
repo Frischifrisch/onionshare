@@ -87,11 +87,6 @@ class Common:
         ╰───────────────────────────────────────────╯
         """
 
-        if self.platform == "Windows":
-            pass
-        else:
-            pass
-
         print(
             Back.MAGENTA + Fore.WHITE + "╭───────────────────────────────────────────╮"
         )
@@ -309,7 +304,11 @@ class Common:
         return path
 
     def get_tor_paths(self):
-        if self.platform == "Linux":
+        if (
+            self.platform == "Linux"
+            or self.platform != "Windows"
+            and self.platform == "Darwin"
+        ):
             tor_path = shutil.which("tor")
             if not tor_path:
                 raise CannotFindTor()
@@ -327,16 +326,6 @@ class Common:
             meek_client_file_path = os.path.join(base_path, "Tor", "meek-client.exe")
             tor_geo_ip_file_path = os.path.join(base_path, "Data", "Tor", "geoip")
             tor_geo_ipv6_file_path = os.path.join(base_path, "Data", "Tor", "geoip6")
-        elif self.platform == "Darwin":
-            tor_path = shutil.which("tor")
-            if not tor_path:
-                raise CannotFindTor()
-            obfs4proxy_file_path = shutil.which("obfs4proxy")
-            snowflake_file_path = shutil.which("snowflake-client")
-            meek_client_file_path = shutil.which("meek-client")
-            prefix = os.path.dirname(os.path.dirname(tor_path))
-            tor_geo_ip_file_path = os.path.join(prefix, "share/tor/geoip")
-            tor_geo_ipv6_file_path = os.path.join(prefix, "share/tor/geoip6")
         elif self.platform == "BSD":
             tor_path = "/usr/local/bin/tor"
             tor_geo_ip_file_path = "/usr/local/share/tor/geoip"
@@ -440,9 +429,7 @@ class Common:
         b = os.urandom(num_bytes)
         h = hashlib.sha256(b).digest()[:16]
         s = base64.b32encode(h).lower().replace(b"=", b"").decode("utf-8")
-        if not output_len:
-            return s
-        return s[:output_len]
+        return s if not output_len else s[:output_len]
 
     @staticmethod
     def human_readable_filesize(b):

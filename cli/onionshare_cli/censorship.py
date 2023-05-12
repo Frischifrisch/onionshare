@@ -53,10 +53,7 @@ class CensorshipCircumvention(object):
         it just returns the recommended bridge type countries.
         """
         endpoint = "https://bridges.torproject.org/moat/circumvention/map"
-        data = {}
-        if country:
-            data = {"country": country}
-
+        data = {"country": country} if country else {}
         r = requests.post(
             endpoint,
             json=data,
@@ -96,9 +93,7 @@ class CensorshipCircumvention(object):
         return recommended settings for just that transport type.
         """
         endpoint = "https://bridges.torproject.org/moat/circumvention/settings"
-        data = {}
-        if country:
-            data = {"country": country}
+        data = {"country": country} if country else {}
         if transports:
             data.append({"transports": transports})
         r = requests.post(
@@ -128,7 +123,7 @@ class CensorshipCircumvention(object):
         # There are no settings - perhaps this country doesn't require censorship circumvention?
         # This is not really an error, so we can just check if False and assume direct Tor
         # connection will work.
-        if not "settings" in result:
+        if "settings" not in result:
             self.common.log(
                 "CensorshipCircumvention",
                 "censorship_obtain_settings",

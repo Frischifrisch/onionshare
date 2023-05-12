@@ -46,4 +46,4 @@ class TestOnionShare:
     def test_start_onion_service_local_only(self, onionshare_obj, mode_settings_obj):
         onionshare_obj.local_only = True
         onionshare_obj.start_onion_service("share", mode_settings_obj)
-        assert onionshare_obj.onion_host == "127.0.0.1:{}".format(onionshare_obj.port)
+        assert onionshare_obj.onion_host == f"127.0.0.1:{onionshare_obj.port}"

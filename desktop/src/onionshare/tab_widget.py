@@ -103,9 +103,7 @@ class TabWidget(QtWidgets.QTabWidget):
 
     def move_new_tab_button(self):
         # Find the width of all tabs
-        tabs_width = sum(
-            [self.tabBar().tabRect(i).width() for i in range(self.count())]
-        )
+        tabs_width = sum(self.tabBar().tabRect(i).width() for i in range(self.count()))
 
         # The current position of the new tab button
         pos = self.new_tab_button.pos()
@@ -145,8 +143,7 @@ class TabWidget(QtWidgets.QTabWidget):
             return
 
         try:
-            mode = self.tabs[tab_id].get_mode()
-            if mode:
+            if mode := self.tabs[tab_id].get_mode():
                 # Update the server status indicator to reflect that of the current tab
                 self.tabs[tab_id].update_server_status_indicator()
             else:
@@ -239,7 +236,7 @@ class TabWidget(QtWidgets.QTabWidget):
     def change_title(self, tab_id, title):
         shortened_title = title
         if len(shortened_title) > 11:
-            shortened_title = shortened_title[:10] + "..."
+            shortened_title = f"{shortened_title[:10]}..."
 
         index = self.indexOf(self.tabs[tab_id])
         self.setTabText(index, shortened_title)
@@ -358,8 +355,7 @@ class TabWidget(QtWidgets.QTabWidget):
                 type(self.tabs[tab_id]) is SettingsTab
                 or type(self.tabs[tab_id]) is TorSettingsTab
             ):
-                mode = self.tabs[tab_id].get_mode()
-                if mode:
+                if mode := self.tabs[tab_id].get_mode():
                     if mode.server_status.status != mode.server_status.STATUS_STOPPED:
                         return True
         return False
@@ -380,21 +376,17 @@ class TabWidget(QtWidgets.QTabWidget):
         for tab_id in self.tabs:
             if type(self.tabs[tab_id]) is SettingsTab:
                 self.tabs[tab_id].tor_is_connected()
-            else:
-                if not type(self.tabs[tab_id]) is TorSettingsTab:
-                    mode = self.tabs[tab_id].get_mode()
-                    if mode:
-                        mode.tor_connection_started()
+            elif type(self.tabs[tab_id]) is not TorSettingsTab:
+                if mode := self.tabs[tab_id].get_mode():
+                    mode.tor_connection_started()
 
     def tor_is_disconnected(self):
         for tab_id in self.tabs:
             if type(self.tabs[tab_id]) is SettingsTab:
                 self.tabs[tab_id].tor_is_disconnected()
-            else:
-                if not type(self.tabs[tab_id]) is TorSettingsTab:
-                    mode = self.tabs[tab_id].get_mode()
-                    if mode:
-                        mode.tor_connection_stopped()
+            elif type(self.tabs[tab_id]) is not TorSettingsTab:
+                if mode := self.tabs[tab_id].get_mode():
+                    mode.tor_connection_stopped()
 
 
 class TabBar(QtWidgets.QTabBar):

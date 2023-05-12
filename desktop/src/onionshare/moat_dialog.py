@@ -237,13 +237,11 @@ class MoatThread(QtCore.QThread):
         try:
             self.meek.start()
         except MeekNotFound:
-            self.common.log("MoatThread", "run", f"Could not find meek-client")
+            self.common.log("MoatThread", "run", "Could not find meek-client")
             self.bridgedb_error.emit()
             return
         except MeekNotRunning:
-            self.common.log(
-                "MoatThread", "run", f"Ran meek-client, but there was an error"
-            )
+            self.common.log("MoatThread", "run", "Ran meek-client, but there was an error")
             self.bridgedb_error.emit()
             return
 
@@ -251,13 +249,15 @@ class MoatThread(QtCore.QThread):
         # but we can override this in local-only mode.
         if not self.meek.meek_proxies and not self.common.gui.local_only:
             self.common.log(
-                "MoatThread", "run", f"Could not identify meek proxies to make request"
+                "MoatThread",
+                "run",
+                "Could not identify meek proxies to make request",
             )
             self.bridgedb_error.emit()
             return
 
         if self.action == "fetch":
-            self.common.log("MoatThread", "run", f"starting fetch")
+            self.common.log("MoatThread", "run", "starting fetch")
 
             # Request a bridge
             r = requests.post(
@@ -289,11 +289,11 @@ class MoatThread(QtCore.QThread):
                     self.bridgedb_error.emit()
                     return
                 if "data" not in moat_res:
-                    self.common.log("MoatThread", "run", f"no data")
+                    self.common.log("MoatThread", "run", "no data")
                     self.bridgedb_error.emit()
                     return
                 if moat_res["data"][0]["type"] != "moat-challenge":
-                    self.common.log("MoatThread", "run", f"type != moat-challange")
+                    self.common.log("MoatThread", "run", "type != moat-challange")
                     self.bridgedb_error.emit()
                     return
 
@@ -308,7 +308,7 @@ class MoatThread(QtCore.QThread):
                 return
 
         elif self.action == "check":
-            self.common.log("MoatThread", "run", f"starting check")
+            self.common.log("MoatThread", "run", "starting check")
 
             # Check the CAPTCHA
             r = requests.post(
@@ -349,14 +349,12 @@ class MoatThread(QtCore.QThread):
                     self.common.log("MoatThread", "run", f"errors={moat_res['errors']}")
                     if moat_res["errors"][0]["code"] == 419:
                         self.captcha_error.emit("")
-                        return
                     else:
                         errors = " ".join([e["detail"] for e in moat_res["errors"]])
                         self.captcha_error.emit(errors)
-                        return
-
+                    return
                 if moat_res["data"][0]["type"] != "moat-bridges":
-                    self.common.log("MoatThread", "run", f"type != moat-bridges")
+                    self.common.log("MoatThread", "run", "type != moat-bridges")
                     self.bridgedb_error.emit()
                     return
 

@@ -66,7 +66,7 @@ class TorSettingsTab(QtWidgets.QWidget):
         )
 
         # Bundled Tor doesn't work on dev mode in Windows or Mac
-        if (self.system == "Windows" or self.system == "Darwin") and getattr(
+        if self.system in ["Windows", "Darwin"] and getattr(
             sys, "onionshare_dev_mode", False
         ):
             self.connection_type_bundled_radio.setEnabled(False)
@@ -392,13 +392,18 @@ class TorSettingsTab(QtWidgets.QWidget):
         self.old_settings.load()
 
         connection_type = self.old_settings.get("connection_type")
-        if connection_type == "bundled":
-            if self.connection_type_bundled_radio.isEnabled():
-                self.connection_type_bundled_radio.setChecked(True)
-            else:
-                # If bundled tor is disabled, fallback to automatic
-                self.connection_type_automatic_radio.setChecked(True)
-        elif connection_type == "automatic":
+        if (
+            connection_type == "bundled"
+            and self.connection_type_bundled_radio.isEnabled()
+        ):
+            self.connection_type_bundled_radio.setChecked(True)
+        elif (
+            connection_type == "bundled"
+            and not self.connection_type_bundled_radio.isEnabled()
+            or connection_type != "bundled"
+            and connection_type == "automatic"
+        ):
+            # If bundled tor is disabled, fallback to automatic
             self.connection_type_automatic_radio.setChecked(True)
         elif connection_type == "control_port":
             self.connection_type_control_port_radio.setChecked(True)
@@ -521,7 +526,7 @@ class TorSettingsTab(QtWidgets.QWidget):
         """
         if selection == "meek-azure":
             # Alert the user about meek's costliness if it looks like they're turning it on
-            if not self.old_settings.get("bridges_builtin_pt") == "meek-azure":
+            if self.old_settings.get("bridges_builtin_pt") != "meek-azure":
                 Alert(
                     self.common,
                     strings._("gui_settings_meek_lite_expensive_warning"),

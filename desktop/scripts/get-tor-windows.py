@@ -33,7 +33,6 @@ import requests
 
 
 def main():
-    exe_url = "https://dist.torproject.org/torbrowser/11.0a10/torbrowser-install-11.0a10_en-US.exe"
     exe_filename = "torbrowser-install-11.0a10_en-US.exe"
     expected_exe_sha256 = (
         "f567dd8368dea0a8d7bbf7c19ece7840f93d493e70662939b92f5058c8dc8d2d"
@@ -52,7 +51,8 @@ def main():
 
     # Make sure Tor Browser is downloaded
     if not os.path.exists(exe_path):
-        print("Downloading {}".format(exe_url))
+        exe_url = "https://dist.torproject.org/torbrowser/11.0a10/torbrowser-install-11.0a10_en-US.exe"
+        print(f"Downloading {exe_url}")
         r = requests.get(exe_url)
         open(exe_path, "wb").write(r.content)
         exe_sha256 = hashlib.sha256(r.content).hexdigest()
@@ -63,8 +63,8 @@ def main():
     # Compare the hash
     if exe_sha256 != expected_exe_sha256:
         print("ERROR! The sha256 doesn't match:")
-        print("expected: {}".format(expected_exe_sha256))
-        print("  actual: {}".format(exe_sha256))
+        print(f"expected: {expected_exe_sha256}")
+        print(f"  actual: {exe_sha256}")
         sys.exit(-1)
 
     # Extract the bits we need from the exe
@@ -75,7 +75,7 @@ def main():
             "-y",
             exe_path,
             "Browser\\TorBrowser\\Tor",
-            "-o%s" % os.path.join(working_path, "Tor"),
+            f'-o{os.path.join(working_path, "Tor")}',
         ]
     ).wait()
     subprocess.Popen(
@@ -85,7 +85,7 @@ def main():
             "-y",
             exe_path,
             "Browser\\TorBrowser\\Data\\Tor\\geoip*",
-            "-o%s" % os.path.join(working_path, "Data"),
+            f'-o{os.path.join(working_path, "Data")}',
         ]
     ).wait()
 

@@ -38,14 +38,13 @@ def make_etag(data):
     hasher = hashlib.sha256()
 
     while True:
-        read_bytes = data.read(4096)
-        if read_bytes:
+        if read_bytes := data.read(4096):
             hasher.update(read_bytes)
         else:
             break
 
     hash_value = binascii.hexlify(hasher.digest()).decode("utf-8")
-    return '"sha256:{}"'.format(hash_value)
+    return f'"sha256:{hash_value}"'
 
 
 def parse_range_header(range_header: str, target_size: int) -> list:
@@ -79,10 +78,7 @@ def parse_range_header(range_header: str, target_size: int) -> list:
                 # parse ranges of the form "bytes=100-200"
                 try:
                     start = int(start)
-                    if not end:
-                        end = target_size
-                    else:
-                        end = int(end)
+                    end = target_size if not end else int(end)
                 except ValueError:
                     abort(416)
 
@@ -102,12 +98,10 @@ def parse_range_header(range_header: str, target_size: int) -> list:
         # initial case
         if not merged:
             merged.append(range_)
+        elif range_[0] <= merged[-1][1] + 1:
+            merged[-1] = (merged[-1][0], max(range_[1], merged[-1][1]))
         else:
-            # merge ranges that are adjacent or overlapping
-            if range_[0] <= merged[-1][1] + 1:
-                merged[-1] = (merged[-1][0], max(range_[1], merged[-1][1]))
-            else:
-                merged.append(range_)
+            merged.append(range_)
 
     return merged
 
@@ -227,7 +221,7 @@ class ShareModeWeb(SendBaseModeWeb):
             r.headers.set("Content-Length", range_[1] - range_[0] + 1)
             filename_dict = {
                 "filename": unidecode(basename),
-                "filename*": "UTF-8''%s" % url_quote(basename),
+                "filename*": f"UTF-8''{url_quote(basename)}",
             }
             r.headers.set("Content-Disposition", "attachment", **filename_dict)
             # guess content type
@@ -259,8 +253,10 @@ class ShareModeWeb(SendBaseModeWeb):
         # range requests are only allowed for get
         if request.method == "GET":
             ranges = parse_range_header(range_header, dl_size)
-            if not (
-                len(ranges) == 1 and ranges[0][0] == 0 and ranges[0][1] == dl_size - 1
+            if (
+                len(ranges) != 1
+                or ranges[0][0] != 0
+                or ranges[0][1] != dl_size - 1
             ):
                 use_default_range = False
                 status_code = 206
@@ -282,8 +278,7 @@ class ShareModeWeb(SendBaseModeWeb):
         if etag_header is not None and etag_header != etag:
             abort(412)
 
-        if_unmod = request.headers.get("If-Unmodified-Since")
-        if if_unmod:
+        if if_unmod := request.headers.get("If-Unmodified-Since"):
             if_date = parse_date(if_unmod)
             if if_date and not if_date.tzinfo:
                 if_date = if_date.replace(tzinfo=timezone.utc) # Compatible with Flask < 2.0.0
@@ -308,67 +303,65 @@ class ShareModeWeb(SendBaseModeWeb):
 
         chunk_size = 102400  # 100kb
 
-        fp = open(file_to_download, "rb")
-        fp.seek(start)
-        self.web.done = False
-        canceled = False
-        bytes_left = end - start + 1
-        while not self.web.done:
-            # The user has canceled the download, so stop serving the file
-            if not self.web.stop_q.empty():
-                self.web.add_request(
-                    self.web.REQUEST_CANCELED, path, {"id": history_id}
-                )
-                break
-
-            read_size = min(chunk_size, bytes_left)
-            chunk = fp.read(read_size)
-            if chunk == b"":
-                self.web.done = True
-            else:
-                try:
-                    yield chunk
-
-                    # tell GUI the progress
-                    downloaded_bytes = fp.tell()
-                    percent = (1.0 * downloaded_bytes / filesize) * 100
-                    bytes_left -= read_size
-
-                    # only output to stdout if running onionshare in CLI mode, or if using Linux (#203, #304)
-                    if (
-                        not self.web.is_gui
-                        or self.common.platform == "Linux"
-                        or self.common.platform == "BSD"
-                    ):
-                        sys.stdout.write(
-                            "\r{0:s}, {1:.2f}%          ".format(
-                                self.common.human_readable_filesize(downloaded_bytes),
-                                percent,
-                            )
-                        )
-                        sys.stdout.flush()
-
-                    self.web.add_request(
-                        self.web.REQUEST_PROGRESS,
-                        path,
-                        {
-                            "id": history_id,
-                            "bytes": downloaded_bytes,
-                            "total_bytes": filesize,
-                        },
-                    )
-                    self.web.done = False
-                except Exception:
-                    # looks like the download was canceled
-                    self.web.done = True
-                    canceled = True
-
-                    # tell the GUI the download has canceled
+        with open(file_to_download, "rb") as fp:
+            fp.seek(start)
+            self.web.done = False
+            canceled = False
+            bytes_left = end - start + 1
+            while not self.web.done:
+                # The user has canceled the download, so stop serving the file
+                if not self.web.stop_q.empty():
                     self.web.add_request(
                         self.web.REQUEST_CANCELED, path, {"id": history_id}
                     )
+                    break
 
-        fp.close()
+                read_size = min(chunk_size, bytes_left)
+                chunk = fp.read(read_size)
+                if chunk == b"":
+                    self.web.done = True
+                else:
+                    try:
+                        yield chunk
+
+                        # tell GUI the progress
+                        downloaded_bytes = fp.tell()
+                        percent = (1.0 * downloaded_bytes / filesize) * 100
+                        bytes_left -= read_size
+
+                        # only output to stdout if running onionshare in CLI mode, or if using Linux (#203, #304)
+                        if (
+                            not self.web.is_gui
+                            or self.common.platform == "Linux"
+                            or self.common.platform == "BSD"
+                        ):
+                            sys.stdout.write(
+                                "\r{0:s}, {1:.2f}%          ".format(
+                                    self.common.human_readable_filesize(downloaded_bytes),
+                                    percent,
+                                )
+                            )
+                            sys.stdout.flush()
+
+                        self.web.add_request(
+                            self.web.REQUEST_PROGRESS,
+                            path,
+                            {
+                                "id": history_id,
+                                "bytes": downloaded_bytes,
+                                "total_bytes": filesize,
+                            },
+                        )
+                        self.web.done = False
+                    except Exception:
+                        # looks like the download was canceled
+                        self.web.done = True
+                        canceled = True
+
+                        # tell the GUI the download has canceled
+                        self.web.add_request(
+                            self.web.REQUEST_CANCELED, path, {"id": history_id}
+                        )
 
         if self.common.platform != "Darwin":
             sys.stdout.write("\n")
@@ -422,41 +415,29 @@ class ShareModeWeb(SendBaseModeWeb):
 
             # If it's a directory
             if os.path.isdir(filesystem_path):
-                # Render directory listing
-                filenames = []
-                for filename in os.listdir(filesystem_path):
-                    filenames.append(filename)
-                filenames.sort()
+                filenames = sorted(os.listdir(filesystem_path))
                 return self.directory_listing(filenames, path, filesystem_path)
 
-            # If it's a file
             elif os.path.isfile(filesystem_path):
                 if self.download_individual_files:
                     return self.stream_individual_file(filesystem_path)
-                else:
-                    history_id = self.cur_history_id
-                    self.cur_history_id += 1
-                    return self.web.error404(history_id)
+                history_id = self.cur_history_id
+                self.cur_history_id += 1
+                return self.web.error404(history_id)
 
-            # If it's not a directory or file, throw a 404
             else:
                 history_id = self.cur_history_id
                 self.cur_history_id += 1
                 return self.web.error404(history_id)
+        elif path == "":
+            filenames = sorted(self.root_files)
+            return self.directory_listing(filenames, path)
+
         else:
-            # Special case loading /
-
-            if path == "":
-                # Root directory listing
-                filenames = list(self.root_files)
-                filenames.sort()
-                return self.directory_listing(filenames, path)
-
-            else:
-                # If the path isn't found, throw a 404
-                history_id = self.cur_history_id
-                self.cur_history_id += 1
-                return self.web.error404(history_id)
+            # If the path isn't found, throw a 404
+            history_id = self.cur_history_id
+            self.cur_history_id += 1
+            return self.web.error404(history_id)
 
     def build_zipfile_list(self, filenames, processed_size_callback=None):
         self.common.log("ShareModeWeb", "build_zipfile_list")

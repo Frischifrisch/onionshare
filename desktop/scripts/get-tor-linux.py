@@ -34,7 +34,6 @@ import requests
 
 
 def main():
-    tarball_url = "https://dist.torproject.org/torbrowser/11.0a10/tor-browser-linux64-11.0a10_en-US.tar.xz"
     tarball_filename = "tor-browser-linux64-11.0a10_en-US.tar.xz"
     expected_tarball_sha256 = (
         "5d3e2ebc4fb6a10f44624359bc2a5a151a57e8402cbd8563d15f9b2524374f1f"
@@ -57,7 +56,8 @@ def main():
 
     # Make sure the tarball is downloaded
     if not os.path.exists(tarball_path):
-        print("Downloading {}".format(tarball_url))
+        tarball_url = "https://dist.torproject.org/torbrowser/11.0a10/tor-browser-linux64-11.0a10_en-US.tar.xz"
+        print(f"Downloading {tarball_url}")
         r = requests.get(tarball_url)
         open(tarball_path, "wb").write(r.content)
         tarball_sha256 = hashlib.sha256(r.content).hexdigest()
@@ -68,8 +68,8 @@ def main():
     # Compare the hash
     if tarball_sha256 != expected_tarball_sha256:
         print("ERROR! The sha256 doesn't match:")
-        print("expected: {}".format(expected_tarball_sha256))
-        print("  actual: {}".format(tarball_sha256))
+        print(f"expected: {expected_tarball_sha256}")
+        print(f"  actual: {tarball_sha256}")
         sys.exit(-1)
 
     # Delete extracted tarball, if it's there

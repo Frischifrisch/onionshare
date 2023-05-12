@@ -474,10 +474,10 @@ class FileSelection(QtWidgets.QVBoxLayout):
         """
         Return the list of file and folder names
         """
-        filenames = []
-        for index in range(self.file_list.count()):
-            filenames.append(self.file_list.item(index).filename)
-        return filenames
+        return [
+            self.file_list.item(index).filename
+            for index in range(self.file_list.count())
+        ]
 
     def save_filenames(self):
         """

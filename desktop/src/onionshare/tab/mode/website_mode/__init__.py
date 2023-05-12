@@ -66,7 +66,7 @@ class WebsiteMode(Mode):
         # File selection
         self.file_selection = FileSelection(
             self.common,
-            "images/{}_mode_website.png".format(self.common.gui.color_mode),
+            f"images/{self.common.gui.color_mode}_mode_website.png",
             strings._("gui_new_tab_website_button"),
             self,
         )
@@ -219,9 +219,10 @@ class WebsiteMode(Mode):
         Step 2 in starting the server. Zipping up files.
         """
         self.filenames = []
-        for index in range(self.file_selection.file_list.count()):
-            self.filenames.append(self.file_selection.file_list.item(index).filename)
-
+        self.filenames.extend(
+            self.file_selection.file_list.item(index).filename
+            for index in range(self.file_selection.file_list.count())
+        )
         # Continue
         self.starting_server_step3.emit()
         self.start_server_finished.emit()

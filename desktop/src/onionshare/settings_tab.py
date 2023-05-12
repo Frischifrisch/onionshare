@@ -81,7 +81,7 @@ class SettingsTab(QtWidgets.QWidget):
         autoupdate_widget.setLayout(autoupdate_layout)
 
         # Autoupdate is only available for Windows and Mac (Linux updates using package manager)
-        if self.system != "Windows" and self.system != "Darwin":
+        if self.system not in ["Windows", "Darwin"]:
             autoupdate_widget.hide()
 
         # Language settings
@@ -91,8 +91,7 @@ class SettingsTab(QtWidgets.QWidget):
         language_names_to_locales = {
             v: k for k, v in self.common.settings.available_locales.items()
         }
-        language_names = list(language_names_to_locales)
-        language_names.sort()
+        language_names = sorted(language_names_to_locales)
         for language_name in language_names:
             locale = language_names_to_locales[language_name]
             self.language_combobox.addItem(language_name, locale)
@@ -164,8 +163,7 @@ class SettingsTab(QtWidgets.QWidget):
         self.old_settings = Settings(self.common)
         self.old_settings.load()
 
-        use_autoupdate = self.old_settings.get("use_autoupdate")
-        if use_autoupdate:
+        if use_autoupdate := self.old_settings.get("use_autoupdate"):
             self.autoupdate_checkbox.setCheckState(QtCore.Qt.Checked)
         else:
             self.autoupdate_checkbox.setCheckState(QtCore.Qt.Unchecked)

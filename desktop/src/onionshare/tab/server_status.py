@@ -203,9 +203,7 @@ class ServerStatus(QtWidgets.QWidget):
         """
         self.mode = share_mode
 
-        if (self.mode == self.common.gui.MODE_SHARE) or (
-            self.mode == self.common.gui.MODE_WEBSITE
-        ):
+        if self.mode in [self.common.gui.MODE_SHARE, self.common.gui.MODE_WEBSITE]:
             self.file_selection = file_selection
 
         self.update()
@@ -282,13 +280,12 @@ class ServerStatus(QtWidgets.QWidget):
                 )
             else:
                 self.url_description.setToolTip(strings._("gui_url_label_persistent"))
-        else:
-            if self.mode == self.common.gui.MODE_SHARE and self.settings.get(
+        elif self.mode == self.common.gui.MODE_SHARE and self.settings.get(
                 "share", "autostop_sharing"
             ):
-                self.url_description.setToolTip(strings._("gui_url_label_onetime"))
-            else:
-                self.url_description.setToolTip(strings._("gui_url_label_stay_open"))
+            self.url_description.setToolTip(strings._("gui_url_label_onetime"))
+        else:
+            self.url_description.setToolTip(strings._("gui_url_label_stay_open"))
 
         if self.settings.get("general", "public"):
             self.url_instructions.setText(strings._("gui_url_instructions_public_mode"))
@@ -408,13 +405,12 @@ class ServerStatus(QtWidgets.QWidget):
                             )
                         )
                     )
+                elif self.common.platform == "Windows":
+                    self.server_button.setText(strings._("gui_please_wait"))
                 else:
-                    if self.common.platform == "Windows":
-                        self.server_button.setText(strings._("gui_please_wait"))
-                    else:
-                        self.server_button.setText(
-                            strings._("gui_please_wait_no_button")
-                        )
+                    self.server_button.setText(
+                        strings._("gui_please_wait_no_button")
+                    )
             else:
                 self.server_button.setStyleSheet(
                     self.common.gui.css["server_status_button_working"]
@@ -594,5 +590,4 @@ class ServerStatus(QtWidgets.QWidget):
         """
         Returns the OnionShare URL.
         """
-        url = f"http://{self.app.onion_host}"
-        return url
+        return f"http://{self.app.onion_host}"

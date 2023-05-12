@@ -68,7 +68,7 @@ class ShareMode(Mode):
         # File selection
         self.file_selection = FileSelection(
             self.common,
-            "images/{}_mode_share.png".format(self.common.gui.color_mode),
+            f"images/{self.common.gui.color_mode}_mode_share.png",
             strings._("gui_new_tab_share_button"),
             self,
         )
@@ -342,11 +342,10 @@ class ShareMode(Mode):
                 self.server_status.stop_server()
                 self.status_bar.clearMessage()
                 self.server_status_label.setText(strings._("closing_automatically"))
-        else:
-            if self.server_status.status == self.server_status.STATUS_STOPPED:
-                self.history.cancel(event["data"]["id"])
-                self.history.in_progress_count = 0
-                self.history.update_in_progress()
+        elif self.server_status.status == self.server_status.STATUS_STOPPED:
+            self.history.cancel(event["data"]["id"])
+            self.history.in_progress_count = 0
+            self.history.update_in_progress()
 
     def handle_request_canceled(self, event):
         """

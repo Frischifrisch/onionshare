@@ -46,7 +46,7 @@ class Application(QtWidgets.QApplication):
     """
 
     def __init__(self, common):
-        if common.platform == "Linux" or common.platform == "BSD":
+        if common.platform in ["Linux", "BSD"]:
             self.setAttribute(QtCore.Qt.AA_X11InitThreads, True)
         QtWidgets.QApplication.__init__(self, sys.argv)
         self.setStyle("Fusion")
@@ -73,9 +73,7 @@ class Application(QtWidgets.QApplication):
 
     def is_dark_mode(self):
         baseColor = QtGui.QPalette().color(QtGui.QPalette.Base)
-        if baseColor.name().lower() == "#ffffff":
-            return False
-        return True
+        return baseColor.name().lower() != "#ffffff"
 
     def setLightMode(self):
         light_palette = QPalette()

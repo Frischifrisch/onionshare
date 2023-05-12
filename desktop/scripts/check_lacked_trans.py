@@ -87,13 +87,13 @@ def main():
     lang_code = args.lang_code
 
     translate_keys = set()
+    # find all the starting strings
+    start_substr = "strings._\("
     for filename in filenames:
         # load translate key from python source
         with open(filename) as f:
             src = f.read()
 
-        # find all the starting strings
-        start_substr = "strings._\("
         starting_indices = [m.start() for m in re.finditer(start_substr, src)]
 
         for starting_i in starting_indices:
@@ -110,13 +110,9 @@ def main():
                     break
                 inc += 1
 
-            # find the starting quote
-            starting_i = src.find(quote, starting_i)
-            if starting_i:
+            if starting_i := src.find(quote, starting_i):
                 starting_i += 1
-                # find the ending quote
-                ending_i = src.find(quote, starting_i)
-                if ending_i:
+                if ending_i := src.find(quote, starting_i):
                     key = src[starting_i:ending_i]
                     translate_keys.add(key)
 
@@ -131,7 +127,7 @@ def main():
         locale_files = [
             f
             for f in files_in(dir, "share/locale")
-            if f.endswith("%s.json" % lang_code)
+            if f.endswith(f"{lang_code}.json")
         ]
     for locale_file in locale_files:
         with codecs.open(locale_file, "r", encoding="utf-8") as f:

@@ -59,11 +59,7 @@ class TorConnectionDialog(QtWidgets.QProgressDialog):
         self.common = common
         self.testing_settings = testing_settings
 
-        if custom_settings:
-            self.settings = custom_settings
-        else:
-            self.settings = self.common.settings
-
+        self.settings = custom_settings if custom_settings else self.common.settings
         self.common.log("TorConnectionDialog", "__init__")
 
         if self.testing_settings:
@@ -204,16 +200,8 @@ class TorConnectionWidget(QtWidgets.QWidget):
 
         self.testing_settings = testing_settings
 
-        if custom_settings:
-            self.settings = custom_settings
-        else:
-            self.settings = self.common.settings
-
-        if self.testing_settings:
-            self.onion = onion
-        else:
-            self.onion = self.common.gui.onion
-
+        self.settings = custom_settings if custom_settings else self.common.settings
+        self.onion = onion if self.testing_settings else self.common.gui.onion
         t = TorConnectionThread(self.common, self.settings, self)
         t.tor_status_update.connect(self._tor_status_update)
         t.connected_to_tor.connect(self._connected_to_tor)

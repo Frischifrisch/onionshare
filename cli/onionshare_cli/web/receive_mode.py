@@ -142,10 +142,7 @@ class ReceiveModeWeb:
             ):
                 msg = ""
                 if files_received > 0:
-                    if files_received == 1:
-                        msg += "1 file"
-                    else:
-                        msg += f"{files_received} files"
+                    msg += "1 file" if files_received == 1 else f"{files_received} files"
                 if message_received:
                     if msg == "":
                         msg = "A text message"
@@ -172,9 +169,8 @@ class ReceiveModeWeb:
                 msg = "Error uploading, please inform the OnionShare user"
                 if ajax:
                     return json.dumps({"error_flashes": [msg]})
-                else:
-                    flash(msg, "error")
-                    return redirect("/")
+                flash(msg, "error")
+                return redirect("/")
 
             if ajax:
                 info_flashes = []
@@ -191,45 +187,35 @@ class ReceiveModeWeb:
                 else:
                     msg = "Message submitted"
             else:
-                if files_received > 0:
-                    msg = f"Uploaded {files_msg}"
-                else:
-                    msg = "Nothing submitted"
-
+                msg = f"Uploaded {files_msg}" if files_received > 0 else "Nothing submitted"
             if ajax:
                 info_flashes.append(msg)
             else:
                 flash(msg, "info")
 
             if self.can_upload:
-                if ajax:
-                    return json.dumps({"info_flashes": info_flashes})
-                else:
-                    return redirect("/")
+                return json.dumps({"info_flashes": info_flashes}) if ajax else redirect("/")
+            if ajax:
+                return json.dumps(
+                    {
+                        "new_body": render_template(
+                            "thankyou.html",
+                            static_url_path=self.web.static_url_path,
+                            title=self.web.settings.get("general", "title"),
+                        )
+                    }
+                )
             else:
-                if ajax:
-                    return json.dumps(
-                        {
-                            "new_body": render_template(
-                                "thankyou.html",
-                                static_url_path=self.web.static_url_path,
-                                title=self.web.settings.get("general", "title"),
-                            )
-                        }
-                    )
-                else:
-                    # It was the last upload and the timer ran out
-                    return make_response(
-                        render_template("thankyou.html"),
-                        static_url_path=self.web.static_url_path,
-                        title=self.web.settings.get("general", "title"),
-                    )
+                # It was the last upload and the timer ran out
+                return make_response(
+                    render_template("thankyou.html"),
+                    static_url_path=self.web.static_url_path,
+                    title=self.web.settings.get("general", "title"),
+                )
 
         @self.web.app.route("/upload-ajax", methods=["POST"], provide_automatic_options=False)
         def upload_ajax_public():
-            if not self.can_upload:
-                return self.web.error403()
-            return upload(ajax=True)
+            return self.web.error403() if not self.can_upload else upload(ajax=True)
 
     def send_webhook_notification(self, data):
         self.common.log("ReceiveModeWeb", "send_webhook_notification", data)
@@ -366,7 +352,7 @@ class ReceiveModeRequest(Request):
         # Is this a valid upload request?
         self.upload_request = False
         if self.method == "POST":
-            if self.path == "/upload" or self.path == "/upload-ajax":
+            if self.path in ["/upload", "/upload-ajax"]:
                 self.upload_request = True
 
         if self.upload_request:
@@ -410,22 +396,6 @@ class ReceiveModeRequest(Request):
                             )
                             self.upload_error = True
                             break
-            except PermissionError:
-                self.web.add_request(
-                    self.web.REQUEST_ERROR_DATA_DIR_CANNOT_CREATE,
-                    request.path,
-                    {"receive_mode_dir": self.receive_mode_dir},
-                )
-                print(
-                    f"Could not create OnionShare data folder: {self.receive_mode_dir}"
-                )
-                self.web.common.log(
-                    "ReceiveModeRequest",
-                    "__init__",
-                    "Permission denied creating receive mode directory",
-                )
-                self.upload_error = True
-
             # Figure out the message filename, in case there is a message
             self.message_filename = f"{self.receive_mode_dir}-message.txt"
 
@@ -461,8 +431,7 @@ class ReceiveModeRequest(Request):
                 # Is there a text message?
                 self.includes_message = False
                 if not self.web.settings.get("receive", "disable_text"):
-                    text_message = self.form.get("text")
-                    if text_message:
+                    if text_message := self.form.get("text"):
                         if text_message.strip() != "":
                             self.includes_message = True
 
